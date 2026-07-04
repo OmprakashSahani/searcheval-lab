@@ -13,6 +13,7 @@ from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
 from searcheval.regression.config import load_regression_thresholds
 from searcheval.reports.markdown import save_markdown_report
+from searcheval.search.bm25 import BM25SearchEngine
 from searcheval.search.tfidf import TfidfSearchEngine
 
 app = typer.Typer(
@@ -69,10 +70,21 @@ def validate(dataset_path: Path) -> None:
     console.print("[bold green]Dataset validation passed.[/bold green]")
 
 
+def build_search_engine(engine: str, dataset_documents):
+    """Build a supported search engine."""
+    if engine == "tfidf":
+        return TfidfSearchEngine(dataset_documents)
+
+    if engine == "bm25":
+        return BM25SearchEngine(dataset_documents)
+
+    raise ValueError(f"Unsupported engine: {engine}")
+
+
 @app.command()
 def run(
     dataset_path: Path,
-    engine: str = typer.Option("tfidf", help="Search engine to evaluate."),
+    engine: str = typer.Option("tfidf", help="Search engine to evaluate: tfidf or bm25."),
     k: int = typer.Option(10, help="Number of top results to retrieve."),
     runs_dir: Path = typer.Option(
         Path("runs"),
@@ -86,9 +98,9 @@ def run(
     console.print(f"Engine: {engine}")
     console.print(f"Top-K: {k}")
 
-    if engine != "tfidf":
+    if engine not in {"tfidf", "bm25"}:
         console.print(f"[bold red]Unsupported engine:[/bold red] {engine}")
-        console.print("Currently supported engines: tfidf")
+        console.print("Currently supported engines: tfidf, bm25")
         raise typer.Exit(code=1)
 
     try:
@@ -109,7 +121,16 @@ def run(
         raise typer.Exit(code=1)
 
     dataset = load_dataset(dataset_path)
-    search_engine = TfidfSearchEngine(dataset.documents)
+
+    try:
+        search_engine = build_search_engine(
+            engine=engine,
+            dataset_documents=dataset.documents,
+        )
+    except ValueError as exc:
+        console.print("[bold red]Benchmark failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
 
     benchmark_run = run_benchmark(
         dataset=dataset,
