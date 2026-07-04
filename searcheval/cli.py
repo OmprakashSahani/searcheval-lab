@@ -5,6 +5,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from searcheval.datasets.validator import validate_dataset
+
 app = typer.Typer(
     name="searcheval",
     help="Evaluation and benchmarking infrastructure for search and retrieval systems.",
@@ -32,20 +34,28 @@ def validate(dataset_path: Path) -> None:
     """
     console.print(f"[bold blue]Validating dataset:[/bold blue] {dataset_path}")
 
-    required_files = [
-        "documents.jsonl",
-        "queries.jsonl",
-        "qrels.jsonl",
-    ]
-
-    missing_files = [
-        file_name for file_name in required_files if not (dataset_path / file_name).exists()
-    ]
-
-    if missing_files:
+    try:
+        result = validate_dataset(dataset_path)
+    except FileNotFoundError as exc:
         console.print("[bold red]Dataset validation failed.[/bold red]")
-        for file_name in missing_files:
-            console.print(f"- Missing file: {file_name}")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+    except ValueError as exc:
+        console.print("[bold red]Dataset validation failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if result.errors:
+        console.print("[bold red]Dataset validation failed.[/bold red]")
+        for error in result.errors:
+            console.print(f"- {error}")
+
+    if result.warnings:
+        console.print("[bold yellow]Warnings:[/bold yellow]")
+        for warning in result.warnings:
+            console.print(f"- {warning}")
+
+    if not result.is_valid:
         raise typer.Exit(code=1)
 
     console.print("[bold green]Dataset validation passed.[/bold green]")
