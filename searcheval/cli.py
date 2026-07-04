@@ -4,8 +4,12 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
+from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
+from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
+from searcheval.search.tfidf import TfidfSearchEngine
 
 app = typer.Typer(
     name="searcheval",
@@ -73,10 +77,52 @@ def run(
     console.print(f"Engine: {engine}")
     console.print(f"Top-K: {k}")
 
-    console.print(
-        "[yellow]Benchmark runner is not implemented yet. "
-        "This command is a CLI placeholder for the MVP.[/yellow]"
+    if engine != "tfidf":
+        console.print(f"[bold red]Unsupported engine:[/bold red] {engine}")
+        console.print("Currently supported engines: tfidf")
+        raise typer.Exit(code=1)
+
+    try:
+        validation_result = validate_dataset(dataset_path)
+    except FileNotFoundError as exc:
+        console.print("[bold red]Benchmark failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+    except ValueError as exc:
+        console.print("[bold red]Benchmark failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if not validation_result.is_valid:
+        console.print("[bold red]Benchmark failed because dataset validation failed.[/bold red]")
+        for error in validation_result.errors:
+            console.print(f"- {error}")
+        raise typer.Exit(code=1)
+
+    dataset = load_dataset(dataset_path)
+    search_engine = TfidfSearchEngine(dataset.documents)
+
+    benchmark_run = run_benchmark(
+        dataset=dataset,
+        search_engine=search_engine,
+        engine_name=engine,
+        k=k,
     )
+
+    summary = benchmark_summary(benchmark_run)
+
+    table = Table(title="Benchmark Summary")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value")
+
+    for metric_name, value in summary.items():
+        if isinstance(value, float):
+            table.add_row(metric_name, f"{value:.4f}")
+        else:
+            table.add_row(metric_name, str(value))
+
+    console.print(table)
+    console.print("[bold green]Benchmark run completed.[/bold green]")
 
 
 @app.command()
