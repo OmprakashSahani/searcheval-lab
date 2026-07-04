@@ -4,111 +4,344 @@ Evaluation and benchmarking infrastructure for search and retrieval systems.
 
 ## Overview
 
-SearchEval Lab is a portfolio-grade ML systems and backend infrastructure project for measuring search and retrieval quality.
+SearchEval Lab is an ML systems and backend infrastructure project for evaluating search and retrieval quality.
 
-The project focuses on evaluating how well different retrieval systems return relevant results for a given set of queries. It supports reproducible datasets, ranking metrics, benchmark runs, regression detection, and automated reports.
+It measures how well a search method retrieves relevant documents for a set of benchmark queries. The project supports reproducible datasets, ranking metrics, benchmark runs, saved artifacts, Markdown reports, and regression detection between runs.
 
-This is not just a search demo. The goal is to build the evaluation layer that helps search teams measure whether a retrieval system is improving or getting worse over time.
+This is not just a search demo. The main goal is to build the evaluation layer that helps search teams measure whether retrieval quality is improving or regressing over time.
 
 ## Project Positioning
 
 SearchEval Lab is designed for roles related to:
 
-* ML Systems Engineering
-* Software Engineering
-* Backend Engineering
-* Search Infrastructure
-* AI Infrastructure
-* Research Evals
-* Machine Learning Engineering
+- ML Systems Engineering
+- Software Engineering
+- Backend Engineering
+- Search Infrastructure
+- AI Infrastructure
+- Research Evals
+- Machine Learning Engineering
 
 ## Core Problem
 
 Search systems need reliable ways to answer questions such as:
 
-* Did the new retrieval method improve search quality?
-* Are relevant documents appearing in the top results?
-* Did a code change cause a search quality regression?
-* Which queries are failing?
-* How do different retrieval methods compare?
-* What is the tradeoff between quality and latency?
+- Did the new retrieval method improve search quality?
+- Are relevant documents appearing in the top results?
+- Did a code change cause a search quality regression?
+- Which queries are failing?
+- How do different retrieval methods compare?
+- What is the tradeoff between quality and latency?
 
 SearchEval Lab answers these questions through benchmark-driven evaluation.
 
-## MVP Scope
+## Current MVP Features
 
-The first version of SearchEval Lab will include:
+The current version includes:
 
-1. A simple dataset format for documents, queries, and relevance labels
-2. Dataset validation
-3. Baseline lexical search using TF-IDF or BM25
-4. Ranking metrics:
-
-   * Recall@K
-   * Precision@K
-   * MRR@K
-   * NDCG@K
-5. Benchmark runner
-6. Benchmark result storage
-7. Regression detection between benchmark runs
-8. Markdown benchmark reports
-9. CLI interface for local usage
-
-## Future Extensions
-
-After the MVP is complete, the project can be extended with:
-
-* Embedding-based semantic search
-* Hybrid lexical + vector search
-* FastAPI backend service
-* HTML benchmark reports
-* GitHub Actions quality gates
-* Query failure analysis
-* Latency benchmarking
-* Dataset versioning
-* Search experiment comparison dashboard
-
-## Non-Goals for Version 1
-
-The first version will not focus on:
-
-* Training large models
-* Building a full frontend dashboard
-* Distributed deployment
-* Kubernetes
-* Complex authentication
-* Large-scale production indexing
-* Fine-tuning embedding models
-
-The priority is to build a clean, reliable, and well-tested search evaluation system.
+- JSONL dataset format for documents, queries, and relevance labels
+- Dataset validation
+- TF-IDF lexical search baseline
+- Ranking metrics:
+  - Precision@K
+  - Recall@K
+  - MRR@K
+  - NDCG@K
+- Benchmark runner
+- Query latency tracking
+- Benchmark artifact storage
+- Markdown benchmark report generation
+- Regression detection between benchmark runs
+- Configurable regression thresholds
+- CLI interface
+- Unit test suite
+- GitHub Actions CI workflow
 
 ## High-Level Workflow
 
 ```text
 Dataset
   ↓
+Dataset Validation
+  ↓
 Search Method
   ↓
-Top-K Results
+Top-K Retrieved Results
   ↓
 Evaluation Metrics
   ↓
 Benchmark Run
   ↓
-Regression Check
+Saved Artifacts
   ↓
-Report
+Markdown Report
+  ↓
+Regression Comparison
 ```
 
-## Example Use Case
+## Project Structure
 
-A developer changes the search algorithm from lexical search to hybrid search.
+```text
+searcheval-lab/
+│
+├── README.md
+├── pyproject.toml
+│
+├── configs/
+│   └── regression.json
+│
+├── data/
+│   └── search_eval_small/
+│       ├── documents.jsonl
+│       ├── queries.jsonl
+│       └── qrels.jsonl
+│
+├── docs/
+│   └── architecture.md
+│
+├── searcheval/
+│   ├── __init__.py
+│   ├── cli.py
+│   │
+│   ├── benchmarks/
+│   │   ├── compare.py
+│   │   ├── runner.py
+│   │   └── store.py
+│   │
+│   ├── datasets/
+│   │   ├── loader.py
+│   │   ├── schema.py
+│   │   └── validator.py
+│   │
+│   ├── eval/
+│   │   ├── evaluator.py
+│   │   └── metrics.py
+│   │
+│   ├── regression/
+│   │   ├── config.py
+│   │   └── detector.py
+│   │
+│   ├── reports/
+│   │   └── markdown.py
+│   │
+│   └── search/
+│       ├── base.py
+│       └── tfidf.py
+│
+├── tests/
+│   ├── test_benchmark_compare.py
+│   ├── test_benchmark_runner.py
+│   ├── test_benchmark_store.py
+│   ├── test_evaluator.py
+│   ├── test_markdown_report.py
+│   ├── test_metrics.py
+│   ├── test_regression_config.py
+│   ├── test_regression_detector.py
+│   └── test_tfidf_search.py
+│
+└── .github/
+    └── workflows/
+        └── ci.yml
+```
 
-SearchEval Lab can run both methods on the same benchmark dataset, compare ranking metrics, detect regressions, and generate a report showing whether the new method improved search quality.
+## Dataset Format
 
-## Current Status
+SearchEval Lab uses three JSONL files.
 
-Project initialized. MVP scope is being defined.
+### documents.jsonl
+
+```json
+{"doc_id": "doc_001", "title": "Transformer Architecture", "text": "Transformers use self-attention mechanisms for sequence modeling."}
+```
+
+### queries.jsonl
+
+```json
+{"query_id": "q_001", "query": "how do transformers use attention"}
+```
+
+### qrels.jsonl
+
+```json
+{"query_id": "q_001", "doc_id": "doc_001", "relevance": 3}
+```
+
+Relevance scale:
+
+| Score | Meaning |
+|---:|---|
+| 0 | Not relevant |
+| 1 | Weakly relevant |
+| 2 | Relevant |
+| 3 | Highly relevant |
+
+## Installation
+
+Install the project in editable mode:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+## CLI Usage
+
+### Show version
+
+```bash
+python -m searcheval.cli version
+```
+
+### Validate dataset
+
+```bash
+python -m searcheval.cli validate data/search_eval_small
+```
+
+Expected result:
+
+```text
+Dataset validation passed.
+```
+
+### Run benchmark
+
+```bash
+python -m searcheval.cli run data/search_eval_small --engine tfidf --k 10
+```
+
+This runs TF-IDF search over the benchmark dataset and prints a summary table with:
+
+- Precision@10
+- Recall@10
+- MRR@10
+- NDCG@10
+- Average latency
+- Minimum latency
+- Maximum latency
+
+It also saves benchmark artifacts under:
+
+```text
+runs/run_YYYYMMDD_HHMMSS_tfidf/
+```
+
+Each run includes:
+
+```text
+summary.json
+metrics.json
+per_query_metrics.json
+latencies.json
+report.md
+```
+
+### Compare two benchmark runs
+
+```bash
+python -m searcheval.cli compare runs/run_baseline_tfidf runs/run_current_tfidf
+```
+
+### Compare runs using regression config
+
+```bash
+python -m searcheval.cli compare \
+  runs/run_baseline_tfidf \
+  runs/run_current_tfidf \
+  --config configs/regression.json
+```
+
+This checks whether the current run regressed beyond allowed thresholds.
+
+## Regression Thresholds
+
+Default regression thresholds are stored in:
+
+```text
+configs/regression.json
+```
+
+Example:
+
+```json
+{
+  "thresholds": {
+    "precision_at_10": -0.05,
+    "recall_at_10": -0.03,
+    "mrr_at_10": -0.03,
+    "ndcg_at_10": -0.02,
+    "latency_avg_ms": 5.0,
+    "latency_max_ms": 10.0
+  }
+}
+```
+
+Negative thresholds are used for quality metrics where drops are bad.
+
+Positive thresholds are used for latency metrics where increases are bad.
+
+## Testing
+
+Run the full test suite:
+
+```bash
+pytest
+```
+
+Current test coverage includes:
+
+- Ranking metrics
+- Dataset loading and validation
+- TF-IDF search
+- Evaluation engine
+- Benchmark runner
+- Benchmark artifact storage
+- Markdown report generation
+- Regression detection
+- Regression config loading
+- Benchmark run comparison
+
+## Example Benchmark Output
+
+Example CLI output:
+
+```text
+Benchmark Summary
+precision_at_10  0.1800
+recall_at_10     0.9500
+mrr_at_10        0.9500
+ndcg_at_10       0.9113
+latency_avg_ms   0.5977
+```
+
+## Why This Project Matters
+
+Search quality is difficult to improve without reliable evaluation.
+
+SearchEval Lab demonstrates how to build the infrastructure around search systems:
+
+- reusable benchmark datasets
+- consistent retrieval interfaces
+- ranking metrics
+- reproducible benchmark runs
+- regression detection
+- automated reports
+- CLI-based developer workflows
+
+This makes the project relevant to ML systems, search infrastructure, backend engineering, and research evaluation roles.
+
+## Future Work
+
+Planned extensions:
+
+- BM25 search baseline
+- Embedding-based semantic search
+- Hybrid lexical + vector search
+- FastAPI backend
+- HTML reports
+- Query failure analysis
+- GitHub Actions quality gate for regression checks
+- Dataset versioning
+- Experiment comparison dashboard
 
 ## Author
 
