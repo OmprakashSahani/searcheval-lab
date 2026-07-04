@@ -1,0 +1,10 @@
+{"query_id": "q_001", "query": "how do transformers use attention"}
+{"query_id": "q_002", "query": "distributed training communication overhead"}
+{"query_id": "q_003", "query": "semantic search using embeddings"}
+{"query_id": "q_004", "query": "bm25 ranking in information retrieval"}
+{"query_id": "q_005", "query": "metrics for evaluating search quality"}
+{"query_id": "q_006", "query": "detect benchmark regressions"}
+{"query_id": "q_007", "query": "make machine learning experiments reproducible"}
+{"query_id": "q_008", "query": "python backend api for ml systems"}
+{"query_id": "q_009", "query": "combine keyword search and vector search"}
+{"query_id": "q_010", "query": "measure latency in search systems"}
