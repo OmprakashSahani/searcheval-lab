@@ -11,6 +11,7 @@ from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
 from searcheval.benchmarks.store import save_benchmark_run
 from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
+from searcheval.regression.config import load_regression_thresholds
 from searcheval.reports.markdown import save_markdown_report
 from searcheval.search.tfidf import TfidfSearchEngine
 
@@ -150,6 +151,11 @@ def run(
 def compare(
     baseline_run: Path,
     current_run: Path,
+    config: Path | None = typer.Option(
+        None,
+        "--config",
+        help="Optional regression threshold config JSON file.",
+    ),
     output: Path | None = typer.Option(
         None,
         "--output",
@@ -161,10 +167,27 @@ def compare(
     console.print(f"Baseline run: {baseline_run}")
     console.print(f"Current run: {current_run}")
 
+    thresholds = None
+
+    if config is not None:
+        try:
+            thresholds = load_regression_thresholds(config)
+        except FileNotFoundError as exc:
+            console.print("[bold red]Comparison failed.[/bold red]")
+            console.print(f"- {exc}")
+            raise typer.Exit(code=1) from exc
+        except ValueError as exc:
+            console.print("[bold red]Comparison failed.[/bold red]")
+            console.print(f"- {exc}")
+            raise typer.Exit(code=1) from exc
+
+        console.print(f"[bold blue]Using regression config:[/bold blue] {config}")
+
     try:
         result = compare_run_dirs(
             baseline_run_dir=baseline_run,
             current_run_dir=current_run,
+            thresholds=thresholds,
         )
     except FileNotFoundError as exc:
         console.print("[bold red]Comparison failed.[/bold red]")
