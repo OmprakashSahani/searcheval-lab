@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
+from searcheval.benchmarks.store import save_benchmark_run
 from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
 from searcheval.search.tfidf import TfidfSearchEngine
@@ -70,6 +71,11 @@ def run(
     dataset_path: Path,
     engine: str = typer.Option("tfidf", help="Search engine to evaluate."),
     k: int = typer.Option(10, help="Number of top results to retrieve."),
+    runs_dir: Path = typer.Option(
+        Path("runs"),
+        "--runs-dir",
+        help="Directory where benchmark run artifacts will be saved.",
+    ),
 ) -> None:
     """Run a benchmark for a search method."""
     console.print("[bold blue]Starting benchmark run[/bold blue]")
@@ -110,6 +116,10 @@ def run(
     )
 
     summary = benchmark_summary(benchmark_run)
+    run_dir = save_benchmark_run(
+        run=benchmark_run,
+        runs_dir=runs_dir,
+    )
 
     table = Table(title="Benchmark Summary")
     table.add_column("Metric", style="bold")
@@ -122,6 +132,7 @@ def run(
             table.add_row(metric_name, str(value))
 
     console.print(table)
+    console.print(f"[bold green]Benchmark artifacts saved to:[/bold green] {run_dir}")
     console.print("[bold green]Benchmark run completed.[/bold green]")
 
 
