@@ -6,6 +6,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from searcheval.benchmarks.compare import compare_run_dirs, save_comparison_result
 from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
 from searcheval.benchmarks.store import save_benchmark_run
 from searcheval.datasets.loader import load_dataset
@@ -149,16 +150,73 @@ def run(
 def compare(
     baseline_run: Path,
     current_run: Path,
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        help="Optional path where the comparison JSON result will be saved.",
+    ),
 ) -> None:
-    """Compare two benchmark runs."""
+    """Compare two saved benchmark runs for regressions."""
     console.print("[bold blue]Comparing benchmark runs[/bold blue]")
     console.print(f"Baseline run: {baseline_run}")
     console.print(f"Current run: {current_run}")
 
-    console.print(
-        "[yellow]Run comparison is not implemented yet. "
-        "This command is a CLI placeholder for the MVP.[/yellow]"
+    try:
+        result = compare_run_dirs(
+            baseline_run_dir=baseline_run,
+            current_run_dir=current_run,
+        )
+    except FileNotFoundError as exc:
+        console.print("[bold red]Comparison failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+    except ValueError as exc:
+        console.print("[bold red]Comparison failed.[/bold red]")
+        console.print(f"- {exc}")
+        raise typer.Exit(code=1) from exc
+
+    table = Table(title="Regression Check")
+    table.add_column("Metric", style="bold")
+    table.add_column("Baseline", justify="right")
+    table.add_column("Current", justify="right")
+    table.add_column("Delta", justify="right")
+    table.add_column("Threshold", justify="right")
+    table.add_column("Status", justify="center")
+
+    for comparison in result.comparisons:
+        status = "[green]PASS[/green]" if comparison.passed else "[red]FAIL[/red]"
+
+        table.add_row(
+            comparison.metric_name,
+            f"{comparison.baseline_value:.4f}",
+            f"{comparison.current_value:.4f}",
+            f"{comparison.delta:.4f}",
+            f"{comparison.threshold:.4f}",
+            status,
+        )
+
+    console.print(table)
+
+    if result.missing_metrics:
+        console.print("[bold yellow]Missing metrics:[/bold yellow]")
+        for metric_name in result.missing_metrics:
+            console.print(f"- {metric_name}")
+
+    if output is None:
+        output = current_run / "comparison.json"
+
+    saved_path = save_comparison_result(
+        result=result,
+        output_path=output,
     )
+
+    console.print(f"[bold blue]Comparison result saved to:[/bold blue] {saved_path}")
+
+    if result.passed:
+        console.print("[bold green]Regression check passed.[/bold green]")
+    else:
+        console.print("[bold red]Regression check failed.[/bold red]")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
