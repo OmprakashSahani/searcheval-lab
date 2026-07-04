@@ -10,6 +10,7 @@ from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
 from searcheval.benchmarks.store import save_benchmark_run
 from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
+from searcheval.reports.markdown import save_markdown_report
 from searcheval.search.tfidf import TfidfSearchEngine
 
 app = typer.Typer(
@@ -116,9 +117,16 @@ def run(
     )
 
     summary = benchmark_summary(benchmark_run)
+
     run_dir = save_benchmark_run(
         run=benchmark_run,
         runs_dir=runs_dir,
+    )
+
+    report_path = save_markdown_report(
+        run=benchmark_run,
+        output_path=run_dir / "report.md",
+        run_id=run_dir.name,
     )
 
     table = Table(title="Benchmark Summary")
@@ -133,6 +141,7 @@ def run(
 
     console.print(table)
     console.print(f"[bold green]Benchmark artifacts saved to:[/bold green] {run_dir}")
+    console.print(f"[bold green]Markdown report saved to:[/bold green] {report_path}")
     console.print("[bold green]Benchmark run completed.[/bold green]")
 
 
