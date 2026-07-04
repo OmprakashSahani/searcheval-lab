@@ -1,0 +1,11 @@
+{
+  "description": "Default regression thresholds for SearchEval Lab benchmark comparisons.",
+  "thresholds": {
+    "precision_at_10": -0.05,
+    "recall_at_10": -0.03,
+    "mrr_at_10": -0.03,
+    "ndcg_at_10": -0.02,
+    "latency_avg_ms": 5.0,
+    "latency_max_ms": 10.0
+  }
+}
