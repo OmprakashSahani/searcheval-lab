@@ -6,7 +6,7 @@ Evaluation and benchmarking infrastructure for search and retrieval systems.
 
 SearchEval Lab is an ML systems and backend infrastructure project for evaluating search and retrieval quality.
 
-It measures how well a search method retrieves relevant documents for a set of benchmark queries. The project supports reproducible datasets, ranking metrics, benchmark runs, saved artifacts, Markdown reports, and regression detection between runs.
+It measures how well different search methods retrieve relevant documents for a set of benchmark queries. The project supports reproducible datasets, ranking metrics, benchmark runs, saved artifacts, Markdown reports, configurable regression thresholds, and regression detection between runs.
 
 This is not just a search demo. The main goal is to build the evaluation layer that helps search teams measure whether retrieval quality is improving or regressing over time.
 
@@ -42,6 +42,7 @@ The current version includes:
 - JSONL dataset format for documents, queries, and relevance labels
 - Dataset validation
 - TF-IDF lexical search baseline
+- BM25 lexical search baseline
 - Ranking metrics:
   - Precision@K
   - Recall@K
@@ -126,12 +127,14 @@ searcheval-lab/
 │   │
 │   └── search/
 │       ├── base.py
+│       ├── bm25.py
 │       └── tfidf.py
 │
 ├── tests/
 │   ├── test_benchmark_compare.py
 │   ├── test_benchmark_runner.py
 │   ├── test_benchmark_store.py
+│   ├── test_bm25_search.py
 │   ├── test_evaluator.py
 │   ├── test_markdown_report.py
 │   ├── test_metrics.py
@@ -203,13 +206,19 @@ Expected result:
 Dataset validation passed.
 ```
 
-### Run benchmark
+### Run TF-IDF benchmark
 
 ```bash
 python -m searcheval.cli run data/search_eval_small --engine tfidf --k 10
 ```
 
-This runs TF-IDF search over the benchmark dataset and prints a summary table with:
+### Run BM25 benchmark
+
+```bash
+python -m searcheval.cli run data/search_eval_small --engine bm25 --k 10
+```
+
+The benchmark command prints a summary table with:
 
 - Precision@10
 - Recall@10
@@ -222,7 +231,7 @@ This runs TF-IDF search over the benchmark dataset and prints a summary table wi
 It also saves benchmark artifacts under:
 
 ```text
-runs/run_YYYYMMDD_HHMMSS_tfidf/
+runs/run_YYYYMMDD_HHMMSS_engine/
 ```
 
 Each run includes:
@@ -235,18 +244,23 @@ latencies.json
 report.md
 ```
 
-### Compare two benchmark runs
+## Compare Search Methods
+
+You can run two benchmark methods and compare their saved run directories.
+
+Example:
 
 ```bash
-python -m searcheval.cli compare runs/run_baseline_tfidf runs/run_current_tfidf
+python -m searcheval.cli run data/search_eval_small --engine tfidf --k 10
+python -m searcheval.cli run data/search_eval_small --engine bm25 --k 10
 ```
 
-### Compare runs using regression config
+Then compare the two saved runs:
 
 ```bash
 python -m searcheval.cli compare \
   runs/run_baseline_tfidf \
-  runs/run_current_tfidf \
+  runs/run_current_bm25 \
   --config configs/regression.json
 ```
 
@@ -292,6 +306,7 @@ Current test coverage includes:
 - Ranking metrics
 - Dataset loading and validation
 - TF-IDF search
+- BM25 search
 - Evaluation engine
 - Benchmark runner
 - Benchmark artifact storage
@@ -302,15 +317,22 @@ Current test coverage includes:
 
 ## Example Benchmark Output
 
-Example CLI output:
+Example TF-IDF result:
 
 ```text
-Benchmark Summary
 precision_at_10  0.1800
 recall_at_10     0.9500
 mrr_at_10        0.9500
 ndcg_at_10       0.9113
-latency_avg_ms   0.5977
+```
+
+Example BM25 result:
+
+```text
+precision_at_10  0.1900
+recall_at_10     1.0000
+mrr_at_10        0.9500
+ndcg_at_10       0.9198
 ```
 
 ## Why This Project Matters
@@ -321,6 +343,7 @@ SearchEval Lab demonstrates how to build the infrastructure around search system
 
 - reusable benchmark datasets
 - consistent retrieval interfaces
+- lexical search baselines
 - ranking metrics
 - reproducible benchmark runs
 - regression detection
@@ -333,7 +356,6 @@ This makes the project relevant to ML systems, search infrastructure, backend en
 
 Planned extensions:
 
-- BM25 search baseline
 - Embedding-based semantic search
 - Hybrid lexical + vector search
 - FastAPI backend
