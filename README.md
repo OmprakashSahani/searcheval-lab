@@ -255,6 +255,80 @@ Clean generated local artifacts:
 make clean
 ```
 
+
+## FastAPI Backend
+
+SearchEval Lab also includes a FastAPI backend for running validation and benchmark workflows through HTTP endpoints.
+
+Start the API server:
+
+```bash
+make api
+```
+
+The server runs at:
+
+```txt
+http://localhost:8000
+```
+
+Interactive API docs are available at:
+
+```txt
+http://localhost:8000/docs
+```
+
+### API Endpoints
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+List supported search engines:
+
+```bash
+curl http://localhost:8000/engines
+```
+
+Validate a dataset:
+
+```bash
+curl -X POST http://localhost:8000/datasets/validate \
+  -H "Content-Type: application/json" \
+  -d '{"dataset_path": "data/search_eval_small"}'
+```
+
+Run a benchmark without saving artifacts:
+
+```bash
+curl -X POST http://localhost:8000/benchmarks/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_path": "data/search_eval_small",
+    "engine": "tfidf",
+    "k": 10,
+    "save_artifacts": false
+  }'
+```
+
+Run a BM25 benchmark and save artifacts:
+
+```bash
+curl -X POST http://localhost:8000/benchmarks/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_path": "data/search_eval_small",
+    "engine": "bm25",
+    "k": 10,
+    "save_artifacts": true,
+    "runs_dir": "runs/api"
+  }'
+```
+
+This API layer makes the benchmark system usable as a backend service, not only as a CLI tool.
+
 ## Code Quality
 
 SearchEval Lab uses Ruff for linting and formatting checks.
