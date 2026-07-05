@@ -213,6 +213,18 @@ Run the full test suite:
 make test
 ```
 
+Run lint checks:
+
+```bash
+make lint
+```
+
+Check formatting:
+
+```bash
+make format-check
+```
+
 Validate the sample dataset:
 
 ```bash
@@ -242,6 +254,20 @@ Clean generated local artifacts:
 ```bash
 make clean
 ```
+
+## Code Quality
+
+SearchEval Lab uses Ruff for linting and formatting checks.
+
+The GitHub Actions CI workflow runs:
+
+```bash
+make lint
+make format-check
+make test
+```
+
+This ensures that every pushed change passes code quality checks and the full test suite.
 
 ## CLI Usage
 
