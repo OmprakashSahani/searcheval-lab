@@ -13,8 +13,7 @@ from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
 from searcheval.regression.config import load_regression_thresholds
 from searcheval.reports.markdown import save_markdown_report
-from searcheval.search.bm25 import BM25SearchEngine
-from searcheval.search.tfidf import TfidfSearchEngine
+from searcheval.search.factory import build_search_engine, supported_search_engines
 
 app = typer.Typer(
     name="searcheval",
@@ -70,21 +69,13 @@ def validate(dataset_path: Path) -> None:
     console.print("[bold green]Dataset validation passed.[/bold green]")
 
 
-def build_search_engine(engine: str, dataset_documents):
-    """Build a supported search engine."""
-    if engine == "tfidf":
-        return TfidfSearchEngine(dataset_documents)
-
-    if engine == "bm25":
-        return BM25SearchEngine(dataset_documents)
-
-    raise ValueError(f"Unsupported engine: {engine}")
-
-
 @app.command()
 def run(
     dataset_path: Path,
-    engine: str = typer.Option("tfidf", help="Search engine to evaluate: tfidf or bm25."),
+    engine: str = typer.Option(
+        "tfidf",
+        help="Search engine to evaluate. Supported engines: tfidf, bm25.",
+    ),
     k: int = typer.Option(10, help="Number of top results to retrieve."),
     runs_dir: Path = typer.Option(
         Path("runs"),
@@ -98,9 +89,9 @@ def run(
     console.print(f"Engine: {engine}")
     console.print(f"Top-K: {k}")
 
-    if engine not in {"tfidf", "bm25"}:
+    if engine.lower().strip() not in supported_search_engines():
         console.print(f"[bold red]Unsupported engine:[/bold red] {engine}")
-        console.print("Currently supported engines: tfidf, bm25")
+        console.print(f"Currently supported engines: {', '.join(supported_search_engines())}")
         raise typer.Exit(code=1)
 
     try:
@@ -124,18 +115,20 @@ def run(
 
     try:
         search_engine = build_search_engine(
-            engine=engine,
-            dataset_documents=dataset.documents,
+            engine_name=engine,
+            documents=dataset.documents,
         )
     except ValueError as exc:
         console.print("[bold red]Benchmark failed.[/bold red]")
         console.print(f"- {exc}")
         raise typer.Exit(code=1) from exc
 
+    normalized_engine_name = engine.lower().strip()
+
     benchmark_run = run_benchmark(
         dataset=dataset,
         search_engine=search_engine,
-        engine_name=engine,
+        engine_name=normalized_engine_name,
         k=k,
     )
 
