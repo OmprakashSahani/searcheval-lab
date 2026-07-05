@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -9,10 +10,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from searcheval import __version__
+from searcheval.benchmarks.compare import compare_run_dirs, save_comparison_result
 from searcheval.benchmarks.runner import benchmark_summary, run_benchmark
 from searcheval.benchmarks.store import save_benchmark_run
 from searcheval.datasets.loader import load_dataset
 from searcheval.datasets.validator import validate_dataset
+from searcheval.regression.config import load_regression_thresholds
 from searcheval.reports.markdown import save_markdown_report
 from searcheval.search.factory import build_search_engine, supported_search_engines
 
@@ -68,6 +71,23 @@ class BenchmarkResponse(BaseModel):
     summary: dict[str, Any]
     run_dir: str | None = None
     report_path: str | None = None
+
+
+class CompareRequest(BaseModel):
+    """Request body for comparing two saved benchmark runs."""
+
+    baseline_run: str = Field(..., min_length=1)
+    current_run: str = Field(..., min_length=1)
+    config_path: str | None = None
+    output_path: str | None = None
+
+
+class CompareResponse(BaseModel):
+    """Benchmark comparison API response."""
+
+    passed: bool
+    comparison: dict[str, Any]
+    output_path: str | None = None
 
 
 @api_app.get("/health", response_model=HealthResponse)
@@ -171,4 +191,60 @@ def run_benchmark_endpoint(
         summary=summary,
         run_dir=str(run_dir) if run_dir else None,
         report_path=str(report_path) if report_path else None,
+    )
+
+
+@api_app.post("/benchmarks/compare", response_model=CompareResponse)
+def compare_benchmark_runs_endpoint(
+    request: CompareRequest,
+) -> CompareResponse:
+    """Compare two saved benchmark runs through the API."""
+    baseline_run = Path(request.baseline_run)
+    current_run = Path(request.current_run)
+
+    if not baseline_run.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Baseline run directory not found: {baseline_run}",
+        )
+
+    if not current_run.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Current run directory not found: {current_run}",
+        )
+
+    thresholds: dict[str, float] | None = None
+
+    if request.config_path is not None:
+        try:
+            thresholds = load_regression_thresholds(Path(request.config_path))
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        comparison_result = compare_run_dirs(
+            baseline_run_dir=baseline_run,
+            current_run_dir=current_run,
+            thresholds=thresholds,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    output_path: Path | None = None
+
+    if request.output_path is not None:
+        output_path = save_comparison_result(
+            result=comparison_result,
+            output_path=Path(request.output_path),
+        )
+
+    return CompareResponse(
+        passed=comparison_result.passed,
+        comparison=asdict(comparison_result),
+        output_path=str(output_path) if output_path else None,
     )
