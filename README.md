@@ -56,6 +56,7 @@ The current version includes:
 - Regression detection between benchmark runs
 - Configurable regression thresholds
 - CLI interface
+- Example benchmark scripts
 - Unit test suite
 - GitHub Actions CI workflow
 
@@ -102,6 +103,11 @@ searcheval-lab/
 │
 ├── docs/
 │   └── architecture.md
+│
+├── examples/
+│   ├── compare_tfidf_bm25.sh
+│   ├── run_bm25.sh
+│   └── run_tfidf.sh
 │
 ├── searcheval/
 │   ├── __init__.py
@@ -249,6 +255,28 @@ latencies.json
 report.md
 ```
 
+## Example Scripts
+
+Run the TF-IDF benchmark:
+
+```bash
+./examples/run_tfidf.sh
+```
+
+Run the BM25 benchmark:
+
+```bash
+./examples/run_bm25.sh
+```
+
+Run TF-IDF and BM25, then compare both benchmark runs:
+
+```bash
+./examples/compare_tfidf_bm25.sh
+```
+
+These scripts provide a simple end-to-end workflow for validating the dataset, running benchmarks, generating reports, and checking regressions.
+
 ## Benchmark Reports
 
 Each generated Markdown report includes:
@@ -354,6 +382,14 @@ precision_at_10  0.1900
 recall_at_10     1.0000
 mrr_at_10        0.9500
 ndcg_at_10       0.9198
+```
+
+Example TF-IDF to BM25 comparison:
+
+```text
+precision_at_10  +0.0100
+recall_at_10     +0.0500
+ndcg_at_10       +0.0085
 ```
 
 ## Why This Project Matters
