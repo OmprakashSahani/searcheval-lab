@@ -8,7 +8,7 @@ from searcheval.benchmarks.runner import (
     run_benchmark,
 )
 from searcheval.datasets.loader import SearchDataset
-from searcheval.datasets.schema import Document, Query, Qrel, SearchResult
+from searcheval.datasets.schema import Document, Qrel, Query, SearchResult
 from searcheval.search.base import SearchEngine
 
 

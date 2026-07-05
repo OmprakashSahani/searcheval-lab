@@ -9,7 +9,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from searcheval.datasets.schema import Document, Query, Qrel
+from searcheval.datasets.schema import Document, Qrel, Query
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 

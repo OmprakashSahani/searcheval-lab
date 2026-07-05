@@ -7,7 +7,6 @@ from searcheval.search.base import SearchEngine
 from searcheval.search.bm25 import BM25SearchEngine
 from searcheval.search.tfidf import TfidfSearchEngine
 
-
 SUPPORTED_SEARCH_ENGINES = {
     "tfidf",
     "bm25",
@@ -33,7 +32,4 @@ def build_search_engine(
         return BM25SearchEngine(documents)
 
     supported = ", ".join(supported_search_engines())
-    raise ValueError(
-        f"Unsupported search engine '{engine_name}'. "
-        f"Supported engines: {supported}"
-    )
+    raise ValueError(f"Unsupported search engine '{engine_name}'. Supported engines: {supported}")

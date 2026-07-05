@@ -17,12 +17,16 @@ def sample_documents() -> list[Document]:
         Document(
             doc_id="doc_002",
             title="Distributed Training",
-            text="Distributed training introduces communication overhead and synchronization costs.",
+            text=(
+                "Distributed training introduces communication overhead and synchronization costs."
+            ),
         ),
         Document(
             doc_id="doc_003",
             title="Search Evaluation Metrics",
-            text="Search quality can be evaluated using Precision at K, Recall at K, MRR, and NDCG.",
+            text=(
+                "Search quality can be evaluated using Precision at K, Recall at K, MRR, and NDCG."
+            ),
         ),
     ]
 

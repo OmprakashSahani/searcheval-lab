@@ -9,7 +9,6 @@ from typer.testing import CliRunner
 
 from searcheval.cli import app
 
-
 runner = CliRunner()
 
 

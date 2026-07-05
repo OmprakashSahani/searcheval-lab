@@ -1,10 +1,16 @@
-.PHONY: install test validate run-tfidf run-bm25 compare clean
+.PHONY: install test lint format-check validate run-tfidf run-bm25 compare clean
 
 install:
 	python -m pip install -e ".[dev]"
 
 test:
 	pytest
+
+lint:
+	ruff check .
+
+format-check:
+	ruff format --check .
 
 validate:
 	python -m searcheval.cli validate data/search_eval_small
@@ -21,4 +27,4 @@ compare:
 clean:
 	rm -rf runs/
 	rm -rf .pytest_cache/
-	rm -rf **/__pycache__/
+	find . -type d -name "__pycache__" -prune -exec rm -rf {} +

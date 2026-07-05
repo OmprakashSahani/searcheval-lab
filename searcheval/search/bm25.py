@@ -9,7 +9,6 @@ from collections import Counter
 from searcheval.datasets.schema import Document, SearchResult
 from searcheval.search.base import SearchEngine, validate_top_k
 
-
 TOKEN_PATTERN = re.compile(r"\b\w+\b")
 
 
@@ -48,27 +47,15 @@ class BM25SearchEngine(SearchEngine):
         self.b = b
 
         self.doc_ids = [document.doc_id for document in documents]
-        self.corpus = [
-            f"{document.title} {document.text}"
-            for document in documents
-        ]
+        self.corpus = [f"{document.title} {document.text}" for document in documents]
 
-        self.tokenized_documents = [
-            tokenize(text)
-            for text in self.corpus
-        ]
+        self.tokenized_documents = [tokenize(text) for text in self.corpus]
 
-        self.document_lengths = [
-            len(tokens)
-            for tokens in self.tokenized_documents
-        ]
+        self.document_lengths = [len(tokens) for tokens in self.tokenized_documents]
 
         self.avg_document_length = sum(self.document_lengths) / len(self.document_lengths)
 
-        self.term_frequencies = [
-            Counter(tokens)
-            for tokens in self.tokenized_documents
-        ]
+        self.term_frequencies = [Counter(tokens) for tokens in self.tokenized_documents]
 
         self.document_frequencies = self._build_document_frequencies()
         self.total_documents = len(documents)
@@ -90,16 +77,7 @@ class BM25SearchEngine(SearchEngine):
         document_frequency = self.document_frequencies.get(term, 0)
 
         return math.log(
-            1
-            + (
-                self.total_documents
-                - document_frequency
-                + 0.5
-            )
-            / (
-                document_frequency
-                + 0.5
-            )
+            1 + (self.total_documents - document_frequency + 0.5) / (document_frequency + 0.5)
         )
 
     def score_document(self, query_terms: list[str], document_index: int) -> float:
@@ -119,9 +97,7 @@ class BM25SearchEngine(SearchEngine):
 
             numerator = frequency * (self.k1 + 1)
             denominator = frequency + self.k1 * (
-                1
-                - self.b
-                + self.b * (document_length / self.avg_document_length)
+                1 - self.b + self.b * (document_length / self.avg_document_length)
             )
 
             score += idf * (numerator / denominator)

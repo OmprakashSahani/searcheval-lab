@@ -45,9 +45,7 @@ def evaluate_query_results(
     """Evaluate retrieved results for a single query."""
     retrieved_doc_ids = [result.doc_id for result in query_results.results]
     relevant_doc_ids = [
-        doc_id
-        for doc_id, relevance in relevance_by_doc_id.items()
-        if relevance > 0
+        doc_id for doc_id, relevance in relevance_by_doc_id.items() if relevance > 0
     ]
 
     metrics = ranking_metrics_at_k(
@@ -76,8 +74,7 @@ def aggregate_query_metrics(
 
     for metric_name in metric_names:
         aggregate_metrics[metric_name] = sum(
-            query_eval.metrics[metric_name]
-            for query_eval in per_query
+            query_eval.metrics[metric_name] for query_eval in per_query
         ) / len(per_query)
 
     return aggregate_metrics

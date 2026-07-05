@@ -76,11 +76,7 @@ def find_queries_below_threshold(
         limit=len(report.per_query),
     )
 
-    return [
-        weak_query
-        for weak_query in weak_queries
-        if weak_query.score < threshold
-    ]
+    return [weak_query for weak_query in weak_queries if weak_query.score < threshold]
 
 
 def summarize_weak_queries(weak_queries: list[WeakQuery]) -> list[dict[str, object]]:

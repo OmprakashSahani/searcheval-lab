@@ -45,16 +45,10 @@ def validate_loaded_dataset(dataset: SearchDataset) -> ValidationResult:
     duplicate_query_ids = find_duplicates(query_ids)
 
     if duplicate_document_ids:
-        errors.append(
-            "Duplicate document IDs found: "
-            + ", ".join(sorted(duplicate_document_ids))
-        )
+        errors.append("Duplicate document IDs found: " + ", ".join(sorted(duplicate_document_ids)))
 
     if duplicate_query_ids:
-        errors.append(
-            "Duplicate query IDs found: "
-            + ", ".join(sorted(duplicate_query_ids))
-        )
+        errors.append("Duplicate query IDs found: " + ", ".join(sorted(duplicate_query_ids)))
 
     if not dataset.documents:
         errors.append("Dataset contains no documents.")
@@ -69,22 +63,16 @@ def validate_loaded_dataset(dataset: SearchDataset) -> ValidationResult:
 
     for qrel in dataset.qrels:
         if qrel.query_id not in query_id_set:
-            errors.append(
-                f"Qrel references missing query_id '{qrel.query_id}'."
-            )
+            errors.append(f"Qrel references missing query_id '{qrel.query_id}'.")
 
         if qrel.doc_id not in document_id_set:
-            errors.append(
-                f"Qrel references missing doc_id '{qrel.doc_id}'."
-            )
+            errors.append(f"Qrel references missing doc_id '{qrel.doc_id}'.")
 
         qrels_by_query.setdefault(qrel.query_id, []).append(qrel.doc_id)
 
     for query_id in query_id_set:
         if query_id not in qrels_by_query:
-            warnings.append(
-                f"Query '{query_id}' has no relevance labels."
-            )
+            warnings.append(f"Query '{query_id}' has no relevance labels.")
 
     for query_id, doc_ids in qrels_by_query.items():
         duplicate_qrel_docs = find_duplicates(doc_ids)

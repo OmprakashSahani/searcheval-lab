@@ -25,10 +25,7 @@ class TfidfSearchEngine(SearchEngine):
             raise ValueError("TfidfSearchEngine requires at least one document.")
 
         self.doc_ids = [document.doc_id for document in documents]
-        self.corpus = [
-            f"{document.title} {document.text}"
-            for document in documents
-        ]
+        self.corpus = [f"{document.title} {document.text}" for document in documents]
 
         self.vectorizer = TfidfVectorizer(
             lowercase=True,
