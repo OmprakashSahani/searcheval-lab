@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from searcheval.benchmarks.runner import BenchmarkRun, benchmark_summary
+from searcheval.eval.failure_analysis import find_weak_queries
 
 
 def format_metric_value(value: object) -> str:
@@ -63,6 +64,43 @@ def render_per_query_table(run: BenchmarkRun) -> str:
     return "\n".join(lines)
 
 
+def render_weak_query_table(
+    run: BenchmarkRun,
+    metric_name: str | None = None,
+    limit: int = 5,
+) -> str:
+    """Render the weakest queries for a selected metric."""
+    if metric_name is None:
+        metric_name = f"ndcg_at_{run.k}"
+
+    weak_queries = find_weak_queries(
+        report=run.evaluation,
+        metric_name=metric_name,
+        limit=limit,
+    )
+
+    lines = [
+        "| Query ID | Metric | Score | Retrieved Docs | Relevant Docs |",
+        "|---|---|---:|---|---|",
+    ]
+
+    for weak_query in weak_queries:
+        retrieved_docs = ", ".join(weak_query.retrieved_doc_ids)
+        relevant_docs = ", ".join(weak_query.relevant_doc_ids)
+
+        row = [
+            weak_query.query_id,
+            weak_query.metric_name,
+            format_metric_value(weak_query.score),
+            retrieved_docs,
+            relevant_docs,
+        ]
+
+        lines.append("| " + " | ".join(row) + " |")
+
+    return "\n".join(lines)
+
+
 def render_latency_table(run: BenchmarkRun) -> str:
     """Render per-query latency measurements as a Markdown table."""
     lines = [
@@ -88,6 +126,8 @@ def render_markdown_report(
     else:
         run_identity = "**Run ID:** not provided"
 
+    weak_query_metric = f"ndcg_at_{run.k}"
+
     sections = [
         title,
         "",
@@ -106,6 +146,16 @@ def render_markdown_report(
         "## Per-Query Metrics",
         "",
         render_per_query_table(run),
+        "",
+        "## Weak Query Analysis",
+        "",
+        f"Weakest queries ranked by `{weak_query_metric}`.",
+        "",
+        render_weak_query_table(
+            run=run,
+            metric_name=weak_query_metric,
+            limit=5,
+        ),
         "",
         "## Query Latency",
         "",
