@@ -6,7 +6,7 @@ Evaluation and benchmarking infrastructure for search and retrieval systems.
 
 SearchEval Lab is an ML systems and backend infrastructure project for evaluating search and retrieval quality.
 
-It measures how well different search methods retrieve relevant documents for a set of benchmark queries. The project supports reproducible datasets, ranking metrics, benchmark runs, saved artifacts, Markdown reports, configurable regression thresholds, and regression detection between runs.
+It measures how well different search methods retrieve relevant documents for a set of benchmark queries. The project supports reproducible datasets, ranking metrics, benchmark runs, saved artifacts, Markdown reports, weak query analysis, configurable regression thresholds, and regression detection between runs.
 
 This is not just a search demo. The main goal is to build the evaluation layer that helps search teams measure whether retrieval quality is improving or regressing over time.
 
@@ -52,6 +52,7 @@ The current version includes:
 - Query latency tracking
 - Benchmark artifact storage
 - Markdown benchmark report generation
+- Weak query analysis
 - Regression detection between benchmark runs
 - Configurable regression thresholds
 - CLI interface
@@ -76,6 +77,8 @@ Benchmark Run
 Saved Artifacts
   ↓
 Markdown Report
+  ↓
+Weak Query Analysis
   ↓
 Regression Comparison
 ```
@@ -116,6 +119,7 @@ searcheval-lab/
 │   │
 │   ├── eval/
 │   │   ├── evaluator.py
+│   │   ├── failure_analysis.py
 │   │   └── metrics.py
 │   │
 │   ├── regression/
@@ -136,6 +140,7 @@ searcheval-lab/
 │   ├── test_benchmark_store.py
 │   ├── test_bm25_search.py
 │   ├── test_evaluator.py
+│   ├── test_failure_analysis.py
 │   ├── test_markdown_report.py
 │   ├── test_metrics.py
 │   ├── test_regression_config.py
@@ -244,6 +249,21 @@ latencies.json
 report.md
 ```
 
+## Benchmark Reports
+
+Each generated Markdown report includes:
+
+- Run summary
+- Aggregate metrics
+- Per-query metrics
+- Weak query analysis
+- Query latency table
+- Notes about ranking metrics
+
+The weak query analysis section ranks the lowest-performing queries by NDCG@K.
+
+This helps identify where the retrieval method is failing and which queries need deeper investigation.
+
 ## Compare Search Methods
 
 You can run two benchmark methods and compare their saved run directories.
@@ -308,6 +328,7 @@ Current test coverage includes:
 - TF-IDF search
 - BM25 search
 - Evaluation engine
+- Query failure analysis
 - Benchmark runner
 - Benchmark artifact storage
 - Markdown report generation
@@ -346,6 +367,7 @@ SearchEval Lab demonstrates how to build the infrastructure around search system
 - lexical search baselines
 - ranking metrics
 - reproducible benchmark runs
+- weak query analysis
 - regression detection
 - automated reports
 - CLI-based developer workflows
@@ -360,7 +382,6 @@ Planned extensions:
 - Hybrid lexical + vector search
 - FastAPI backend
 - HTML reports
-- Query failure analysis
 - GitHub Actions quality gate for regression checks
 - Dataset versioning
 - Experiment comparison dashboard
