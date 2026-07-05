@@ -197,6 +197,52 @@ Install the project in editable mode:
 python -m pip install -e ".[dev]"
 ```
 
+## Developer Commands
+
+Common commands are available through the Makefile.
+
+Install dependencies:
+
+```bash
+make install
+```
+
+Run the full test suite:
+
+```bash
+make test
+```
+
+Validate the sample dataset:
+
+```bash
+make validate
+```
+
+Run TF-IDF benchmark:
+
+```bash
+make run-tfidf
+```
+
+Run BM25 benchmark:
+
+```bash
+make run-bm25
+```
+
+Run the TF-IDF vs BM25 comparison workflow:
+
+```bash
+make compare
+```
+
+Clean generated local artifacts:
+
+```bash
+make clean
+```
+
 ## CLI Usage
 
 ### Show version
