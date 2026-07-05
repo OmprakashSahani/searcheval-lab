@@ -1,4 +1,4 @@
-.PHONY: install test lint format-check validate run-tfidf run-bm25 compare clean
+.PHONY: install test lint format-check validate run-tfidf run-bm25 compare api clean
 
 install:
 	python -m pip install -e ".[dev]"
@@ -23,6 +23,9 @@ run-bm25:
 
 compare:
 	./examples/compare_tfidf_bm25.sh
+
+api:
+	uvicorn searcheval.api:api_app --host 0.0.0.0 --port 8000 --reload
 
 clean:
 	rm -rf runs/
