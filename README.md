@@ -249,6 +249,18 @@ Run the TF-IDF vs BM25 comparison workflow:
 make compare
 ```
 
+Start the FastAPI backend:
+
+```bash
+make api
+```
+
+Run the API smoke test after the backend is running:
+
+```bash
+make api-smoke
+```
+
 Clean generated local artifacts:
 
 ```bash
@@ -264,6 +276,18 @@ Start the API server:
 
 ```bash
 make api
+```
+
+In a second terminal, run the API smoke test:
+
+```bash
+make api-smoke
+```
+
+You can also run the script directly:
+
+```bash
+./examples/api_smoke_test.sh
 ```
 
 The server runs at:
