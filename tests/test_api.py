@@ -13,7 +13,7 @@ client = TestClient(api_app)
 
 
 def write_summary(run_dir: Path, summary: dict[str, float]) -> None:
-    """Write a saved benchmark summary.json file for API compare tests."""
+    """Write a saved benchmark summary.json file for API tests."""
     run_dir.mkdir(parents=True, exist_ok=True)
 
     payload = {
@@ -27,6 +27,18 @@ def write_summary(run_dir: Path, summary: dict[str, float]) -> None:
         json.dumps(payload, indent=2),
         encoding="utf-8",
     )
+
+
+def sample_summary() -> dict[str, float]:
+    """Return a sample benchmark summary."""
+    return {
+        "precision_at_10": 0.19,
+        "recall_at_10": 1.0,
+        "mrr_at_10": 0.95,
+        "ndcg_at_10": 0.92,
+        "latency_avg_ms": 1.2,
+        "latency_max_ms": 2.5,
+    }
 
 
 def test_api_health_endpoint() -> None:
@@ -141,6 +153,71 @@ def test_api_run_benchmark_rejects_unknown_engine() -> None:
     assert "Unsupported search engine" in response.json()["detail"]
 
 
+def test_api_list_saved_benchmark_runs(tmp_path: Path) -> None:
+    first_run = tmp_path / "run_001_tfidf"
+    second_run = tmp_path / "run_002_bm25"
+
+    write_summary(first_run, sample_summary())
+    write_summary(second_run, sample_summary())
+
+    response = client.get(
+        "/benchmarks/runs",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert len(payload) == 2
+    assert payload[0]["run_id"] == "run_001_tfidf"
+    assert payload[1]["run_id"] == "run_002_bm25"
+    assert payload[0]["summary"]["precision_at_10"] == 0.19
+
+
+def test_api_list_saved_benchmark_runs_returns_empty_for_missing_dir(
+    tmp_path: Path,
+) -> None:
+    response = client.get(
+        "/benchmarks/runs",
+        params={"runs_dir": str(tmp_path / "missing_runs")},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_api_get_saved_benchmark_run(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["run_id"] == "run_001_tfidf"
+    assert payload["engine"] == "tfidf"
+    assert payload["k"] == 10
+    assert payload["run_dir"] == str(run_dir)
+    assert payload["summary"]["ndcg_at_10"] == 0.92
+
+
+def test_api_get_saved_benchmark_run_rejects_missing_run(tmp_path: Path) -> None:
+    response = client.get(
+        "/benchmarks/runs/missing_run",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 404
+    assert "Benchmark run not found" in response.json()["detail"]
+
+
 def test_api_compare_benchmark_runs(tmp_path: Path) -> None:
     baseline_run = tmp_path / "run_baseline_tfidf"
     current_run = tmp_path / "run_current_bm25"
@@ -160,14 +237,7 @@ def test_api_compare_benchmark_runs(tmp_path: Path) -> None:
 
     write_summary(
         run_dir=current_run,
-        summary={
-            "precision_at_10": 0.19,
-            "recall_at_10": 1.0,
-            "mrr_at_10": 0.95,
-            "ndcg_at_10": 0.92,
-            "latency_avg_ms": 1.2,
-            "latency_max_ms": 2.5,
-        },
+        summary=sample_summary(),
     )
 
     response = client.post(
@@ -194,12 +264,7 @@ def test_api_compare_rejects_missing_baseline_run(tmp_path: Path) -> None:
 
     write_summary(
         run_dir=current_run,
-        summary={
-            "precision_at_10": 0.19,
-            "recall_at_10": 1.0,
-            "mrr_at_10": 0.95,
-            "ndcg_at_10": 0.92,
-        },
+        summary=sample_summary(),
     )
 
     response = client.post(
