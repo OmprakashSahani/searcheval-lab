@@ -218,6 +218,40 @@ def test_api_get_saved_benchmark_run_rejects_missing_run(tmp_path: Path) -> None
     assert "Benchmark run not found" in response.json()["detail"]
 
 
+def test_api_get_saved_benchmark_report(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    report_text = "# Benchmark Report\n\nThis is a saved benchmark report.\n"
+    report_path = run_dir / "report.md"
+    report_path.write_text(report_text, encoding="utf-8")
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/report",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+    assert response.text == report_text
+
+
+def test_api_get_saved_benchmark_report_rejects_missing_report(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/report",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 404
+    assert "Benchmark report not found" in response.json()["detail"]
+
+
 def test_api_compare_benchmark_runs(tmp_path: Path) -> None:
     baseline_run = tmp_path / "run_baseline_tfidf"
     current_run = tmp_path / "run_current_bm25"
