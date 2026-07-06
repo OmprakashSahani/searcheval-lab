@@ -252,6 +252,113 @@ def test_api_get_saved_benchmark_report_rejects_missing_report(
     assert "Benchmark report not found" in response.json()["detail"]
 
 
+def test_api_get_saved_benchmark_metrics(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    metrics_payload = {
+        "run_id": run_dir.name,
+        "engine": "tfidf",
+        "k": 10,
+        "metrics": sample_summary(),
+    }
+
+    (run_dir / "metrics.json").write_text(
+        json.dumps(metrics_payload, indent=2),
+        encoding="utf-8",
+    )
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/metrics",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["metrics"]["ndcg_at_10"] == 0.92
+
+
+def test_api_get_saved_benchmark_per_query_metrics(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    per_query_payload = {
+        "run_id": run_dir.name,
+        "engine": "tfidf",
+        "k": 10,
+        "queries": [
+            {
+                "query_id": "q_001",
+                "precision_at_10": 0.2,
+                "recall_at_10": 1.0,
+                "mrr_at_10": 1.0,
+                "ndcg_at_10": 0.95,
+            }
+        ],
+    }
+
+    (run_dir / "per_query_metrics.json").write_text(
+        json.dumps(per_query_payload, indent=2),
+        encoding="utf-8",
+    )
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/per-query",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["queries"][0]["query_id"] == "q_001"
+
+
+def test_api_get_saved_benchmark_latencies(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    latency_payload = {
+        "run_id": run_dir.name,
+        "engine": "tfidf",
+        "k": 10,
+        "latencies": [
+            {
+                "query_id": "q_001",
+                "latency_ms": 1.25,
+            }
+        ],
+    }
+
+    (run_dir / "latencies.json").write_text(
+        json.dumps(latency_payload, indent=2),
+        encoding="utf-8",
+    )
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/latencies",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["latencies"][0]["latency_ms"] == 1.25
+
+
+def test_api_get_saved_benchmark_artifact_rejects_missing_artifact(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run_001_tfidf"
+
+    write_summary(run_dir, sample_summary())
+
+    response = client.get(
+        f"/benchmarks/runs/{run_dir.name}/metrics",
+        params={"runs_dir": str(tmp_path)},
+    )
+
+    assert response.status_code == 404
+    assert "Benchmark artifact not found" in response.json()["detail"]
+
+
 def test_api_compare_benchmark_runs(tmp_path: Path) -> None:
     baseline_run = tmp_path / "run_baseline_tfidf"
     current_run = tmp_path / "run_current_bm25"
