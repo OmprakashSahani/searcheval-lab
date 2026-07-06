@@ -1,106 +1,58 @@
-# SearchEval Lab — System Architecture
+# SearchEval Lab Architecture
 
-## Purpose
+SearchEval Lab is a benchmarking and evaluation system for search quality, retrieval baselines, latency tracking, regression detection, and reproducible benchmark reporting.
 
-SearchEval Lab is an evaluation and benchmarking system for search and retrieval pipelines.
+The system can be used in two ways:
 
-The goal is to measure how well different search methods retrieve relevant documents for a set of benchmark queries.
-
-This project is designed to show strong skills in:
-
-- ML systems
-- Search evaluation
-- Backend engineering
-- Benchmarking
-- Reproducibility
-- Regression detection
-- Performance analysis
-
----
-
-## Core Idea
-
-SearchEval Lab should answer these questions:
-
-1. Are relevant documents appearing in the top search results?
-2. Which queries are performing well or poorly?
-3. Did a new search method improve quality?
-4. Did a code change create a search quality regression?
-5. What is the tradeoff between retrieval quality and latency?
-
-The project is not just a search demo.
-
-The main focus is the evaluation infrastructure around search systems.
-
----
-
-## High-Level Workflow
-
-```text
-Dataset
-  ↓
-Dataset Validation
-  ↓
-Search Method
-  ↓
-Top-K Retrieved Results
-  ↓
-Evaluation Metrics
-  ↓
-Benchmark Run
-  ↓
-Regression Detection
-  ↓
-Benchmark Report
-```
+1. As a developer CLI tool.
+2. As a FastAPI backend service.
 
 ---
 
 ## High-Level Architecture
 
-```text
-                    ┌────────────────────────┐
-                    │      Dataset Layer      │
-                    │ docs / queries / qrels  │
-                    └───────────┬────────────┘
-                                │
-                                ▼
-                    ┌────────────────────────┐
-                    │   Dataset Validator     │
-                    │ schema + consistency    │
-                    └───────────┬────────────┘
-                                │
-                                ▼
-                    ┌────────────────────────┐
-                    │    Search Interface     │
-                    │ common retrieval API    │
-                    └───────────┬────────────┘
-                                │
-              ┌─────────────────┼─────────────────┐
-              ▼                 ▼                 ▼
-     ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-     │ Lexical Search │ │ Vector Search  │ │ Hybrid Search  │
-     │ TF-IDF / BM25  │ │ Embeddings     │ │ Lexical+Vector │
-     └────────┬───────┘ └────────┬───────┘ └────────┬───────┘
-              └─────────────────┼─────────────────┘
-                                ▼
-                    ┌────────────────────────┐
-                    │    Evaluation Engine    │
-                    │ Recall / MRR / NDCG     │
-                    └───────────┬────────────┘
-                                │
-                                ▼
-                    ┌────────────────────────┐
-                    │    Benchmark Runner     │
-                    │ configs / runs / timing │
-                    └───────────┬────────────┘
-                                │
-              ┌─────────────────┼─────────────────┐
-              ▼                 ▼                 ▼
-     ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-     │ Benchmark Store│ │ Regression     │ │ Report         │
-     │ run artifacts  │ │ Detector       │ │ Generator      │
-     └────────────────┘ └────────────────┘ └────────────────┘
+```txt
+Dataset Files
+documents.jsonl
+queries.jsonl
+qrels.jsonl
+      |
+      v
+Dataset Loader + Validator
+      |
+      v
+Search Engine Factory
+      |
+      +------------------+
+      |                  |
+      v                  v
+TF-IDF Search        BM25 Search
+      |                  |
+      +--------+---------+
+               |
+               v
+Benchmark Runner
+               |
+               v
+Evaluation Engine
+Precision@K, Recall@K, MRR@K, NDCG@K
+               |
+               v
+Artifact Store
+summary.json
+metrics.json
+per_query_metrics.json
+latencies.json
+report.md
+comparison.json
+               |
+               +-------------------+
+               |                   |
+               v                   v
+Regression Compare        Markdown Reports
+               |
+               v
+CLI + FastAPI Access Layer
 ```
 
 ---
@@ -109,361 +61,311 @@ Benchmark Report
 
 ### 1. Dataset Layer
 
-The dataset layer stores benchmark data.
+The dataset layer loads and validates search evaluation data.
 
-The MVP dataset will use three files:
+Files:
 
-```text
+```txt
+searcheval/datasets/schema.py
+searcheval/datasets/loader.py
+searcheval/datasets/validator.py
+```
+
+Dataset format:
+
+```txt
 documents.jsonl
 queries.jsonl
 qrels.jsonl
 ```
 
-### documents.jsonl
+Responsibilities:
 
-Stores searchable documents.
-
-Example:
-
-```json
-{"doc_id": "doc_001", "title": "Transformer Architecture", "text": "Transformers use self-attention mechanisms for sequence modeling."}
-```
-
-### queries.jsonl
-
-Stores benchmark queries.
-
-Example:
-
-```json
-{"query_id": "q_001", "query": "how do transformers use attention"}
-```
-
-### qrels.jsonl
-
-Stores relevance labels.
-
-Example:
-
-```json
-{"query_id": "q_001", "doc_id": "doc_001", "relevance": 3}
-```
-
-Relevance scale:
-
-| Score | Meaning |
-|---:|---|
-| 0 | Not relevant |
-| 1 | Weakly relevant |
-| 2 | Relevant |
-| 3 | Highly relevant |
+- Parse JSONL files.
+- Validate document IDs, query IDs, and relevance labels.
+- Detect missing references.
+- Detect duplicate records.
+- Provide typed dataset objects to the benchmark runner.
 
 ---
 
-### 2. Dataset Validator
+### 2. Search Engine Layer
 
-The validator checks whether the dataset is usable before running benchmarks.
+The search layer provides interchangeable retrieval methods.
 
-It should detect:
+Files:
 
-- Missing document IDs
-- Missing query IDs
-- Duplicate document IDs
-- Duplicate query IDs
-- Empty document text
-- Empty query text
-- Invalid relevance scores
-- Relevance labels pointing to missing documents
-- Relevance labels pointing to missing queries
+```txt
+searcheval/search/base.py
+searcheval/search/tfidf.py
+searcheval/search/bm25.py
+searcheval/search/factory.py
+```
 
-This makes benchmark results more reliable and reproducible.
+Current engines:
+
+```txt
+tfidf
+bm25
+```
+
+Responsibilities:
+
+- Provide a common search interface.
+- Rank documents for each query.
+- Return top-k search results.
+- Allow CLI and API workflows to select search engines dynamically.
+
+The search engine factory keeps the CLI and API independent from specific search engine implementations.
 
 ---
 
-### 3. Search Interface
+### 3. Evaluation Layer
 
-All search methods should follow one common interface.
+The evaluation layer computes search quality metrics.
 
-Input:
+Files:
 
-```text
-query
-top_k
+```txt
+searcheval/eval/metrics.py
+searcheval/eval/evaluator.py
+searcheval/eval/failure_analysis.py
 ```
 
-Output:
+Metrics:
+
+```txt
+Precision@K
+Recall@K
+MRR@K
+NDCG@K
+```
+
+Responsibilities:
+
+- Evaluate ranked results against relevance labels.
+- Aggregate metrics across queries.
+- Produce per-query metrics.
+- Identify weak queries for failure analysis.
+
+---
+
+### 4. Benchmark Layer
+
+The benchmark layer connects datasets, search engines, evaluation, and latency tracking.
+
+Files:
+
+```txt
+searcheval/benchmarks/runner.py
+searcheval/benchmarks/store.py
+searcheval/benchmarks/compare.py
+```
+
+Responsibilities:
+
+- Run benchmarks end to end.
+- Measure query latency.
+- Aggregate search quality metrics.
+- Save benchmark artifacts.
+- Compare two saved benchmark runs.
+
+Saved artifacts:
+
+```txt
+summary.json
+metrics.json
+per_query_metrics.json
+latencies.json
+report.md
+comparison.json
+```
+
+---
+
+### 5. Regression Detection Layer
+
+The regression layer detects quality and latency regressions between benchmark runs.
+
+Files:
+
+```txt
+searcheval/regression/detector.py
+searcheval/regression/config.py
+configs/regression.json
+```
+
+Responsibilities:
+
+- Compare baseline and current metrics.
+- Apply configurable thresholds.
+- Detect regressions in quality metrics.
+- Detect regressions in latency metrics.
+- Produce pass/fail comparison results.
+
+Example threshold configuration:
 
 ```json
 {
-  "query_id": "q_001",
-  "results": [
-    {
-      "doc_id": "doc_001",
-      "score": 0.92,
-      "rank": 1
-    },
-    {
-      "doc_id": "doc_005",
-      "score": 0.74,
-      "rank": 2
-    }
-  ]
+  "thresholds": {
+    "precision_at_10": -0.05,
+    "recall_at_10": -0.03,
+    "mrr_at_10": -0.03,
+    "ndcg_at_10": -0.02,
+    "latency_avg_ms": 5.0,
+    "latency_max_ms": 10.0
+  }
 }
 ```
 
-This allows different search methods to be evaluated fairly.
-
 ---
 
-### 4. Lexical Search
+### 6. Reporting Layer
 
-The first search baseline will be lexical search.
+The reporting layer generates Markdown benchmark reports.
 
-Version 1 can use:
+File:
 
-- TF-IDF
-- BM25
-
-Lexical search is useful because it is simple, explainable, and strong for keyword matching.
-
----
-
-### 5. Vector Search
-
-Vector search will be added after the MVP.
-
-It will use embeddings to retrieve semantically similar documents.
-
-Example:
-
-```text
-Query: "how to scale model training across GPUs"
-
-Could match:
-"Distributed training improves scalability by splitting computation across multiple devices."
+```txt
+searcheval/reports/markdown.py
 ```
 
----
+Report sections:
 
-### 6. Hybrid Search
-
-Hybrid search combines lexical and vector search.
-
-Example:
-
-```text
-hybrid_score = alpha * lexical_score + (1 - alpha) * vector_score
+```txt
+Run Summary
+Aggregate Metrics
+Per-Query Metrics
+Weak Query Analysis
+Query Latency
+Notes
 ```
 
-This is useful because many real search systems combine keyword and semantic signals.
+The report is designed to make benchmark results readable for engineers, reviewers, and hiring teams.
 
 ---
 
-### 7. Evaluation Engine
+### 7. CLI Layer
 
-The evaluation engine compares retrieved results against relevance labels.
+The CLI provides a local developer workflow.
 
-The MVP should support:
+File:
 
-- Precision@K
-- Recall@K
-- MRR@K
-- NDCG@K
-
-### Precision@K
-
-Measures how many top-K results are relevant.
-
-### Recall@K
-
-Measures how many relevant documents were retrieved in the top-K results.
-
-### MRR@K
-
-Measures how early the first relevant result appears.
-
-### NDCG@K
-
-Measures ranking quality using graded relevance scores.
-
-NDCG is important because it rewards highly relevant documents appearing near the top.
-
----
-
-### 8. Benchmark Runner
-
-The benchmark runner coordinates the full evaluation process.
-
-It should:
-
-1. Load the dataset
-2. Validate the dataset
-3. Initialize the selected search method
-4. Run all benchmark queries
-5. Collect top-K results
-6. Measure query latency
-7. Compute evaluation metrics
-8. Save benchmark artifacts
-
-A benchmark run should produce:
-
-```text
-runs/run_001/
-  config.json
-  metrics.json
-  per_query_metrics.json
-  results.json
+```txt
+searcheval/cli.py
 ```
 
----
-
-### 9. Benchmark Store
-
-The benchmark store saves outputs from each benchmark run.
-
-Each run should include:
-
-- Run ID
-- Timestamp
-- Dataset path
-- Search method
-- Top-K value
-- Search configuration
-- Aggregate metrics
-- Per-query metrics
-- Raw retrieved results
-- Latency statistics
-
-This makes experiments reproducible and comparable.
-
----
-
-### 10. Regression Detector
-
-The regression detector compares a current run against a baseline run.
-
-Example:
-
-```text
-Baseline NDCG@10: 0.740
-Current NDCG@10:  0.710
-Delta:            -4.05%
-
-Status: FAIL
-Reason: NDCG@10 dropped beyond the allowed threshold.
-```
-
-Regression detection should support configurable thresholds.
-
-Example:
-
-```yaml
-regression_thresholds:
-  recall_at_10: -0.03
-  ndcg_at_10: -0.02
-  mrr_at_10: -0.02
-  latency_p95_ms: 0.20
-```
-
-This turns SearchEval Lab into a quality gate for search systems.
-
----
-
-### 11. Report Generator
-
-The report generator creates benchmark summaries.
-
-The first version should generate Markdown reports.
-
-A report should include:
-
-- Run summary
-- Dataset summary
-- Search method configuration
-- Aggregate metrics
-- Per-query metrics
-- Weak queries
-- Regression analysis
-- Latency summary
-- Recommendations
-
----
-
-## CLI Architecture
-
-The CLI should support the main project workflow.
-
-Example commands:
+Main commands:
 
 ```bash
-searcheval validate data/search_eval_small
+python -m searcheval.cli version
+python -m searcheval.cli validate data/search_eval_small
+python -m searcheval.cli run data/search_eval_small --engine tfidf --k 10
+python -m searcheval.cli run data/search_eval_small --engine bm25 --k 10
+python -m searcheval.cli compare <baseline_run> <current_run>
 ```
 
-```bash
-searcheval run --dataset data/search_eval_small --engine tfidf --k 10
-```
-
-```bash
-searcheval compare --baseline runs/run_001 --current runs/run_002
-```
-
-```bash
-searcheval report --run runs/run_002 --format markdown
-```
-
-```bash
-searcheval check --baseline runs/run_001 --current runs/run_002 --thresholds configs/regression.yaml
-```
+The CLI is useful for local benchmarking, regression checks, and reproducible experiments.
 
 ---
 
-## Planned API Architecture
+### 8. FastAPI Backend Layer
 
-The FastAPI backend will be added after the CLI MVP.
+The API layer exposes benchmark workflows over HTTP.
 
-Planned endpoints:
+File:
 
-```text
+```txt
+searcheval/api.py
+```
+
+Main endpoints:
+
+```txt
+GET  /health
+GET  /engines
 POST /datasets/validate
 POST /benchmarks/run
-GET  /benchmarks/{run_id}
+GET  /benchmarks/runs
+GET  /benchmarks/runs/{run_id}
+GET  /benchmarks/runs/{run_id}/report
+GET  /benchmarks/runs/{run_id}/metrics
+GET  /benchmarks/runs/{run_id}/per-query
+GET  /benchmarks/runs/{run_id}/latencies
 POST /benchmarks/compare
-GET  /reports/{run_id}
-POST /search
 ```
 
-The API layer should reuse the same internal modules as the CLI.
-
-This avoids duplicate logic.
+The API makes the benchmark system usable as a backend service and prepares the project for a future dashboard or automation layer.
 
 ---
 
-## MVP Architecture Summary
+## Developer Workflow
 
-The MVP will focus on this flow:
+Common commands are available through the Makefile.
 
-```text
-Dataset validation
-  ↓
-Lexical search baseline
-  ↓
-Ranking metrics
-  ↓
-Benchmark run storage
-  ↓
-Regression comparison
-  ↓
-Markdown report
+```bash
+make install
+make lint
+make format-check
+make test
+make validate
+make run-tfidf
+make run-bm25
+make compare
+make api
+make api-smoke
 ```
-
-The most important design decision is to keep evaluation independent from retrieval.
-
-That means the evaluation engine should work with TF-IDF, BM25, vector search, hybrid search, or any future retrieval method.
 
 ---
 
-## Architecture Status
+## CI Workflow
 
-Architecture defined.
+GitHub Actions runs:
 
-Next step: create the initial project folder structure.
+```bash
+make lint
+make format-check
+make test
+```
+
+This ensures that every pushed change passes linting, formatting, and the full test suite.
+
+---
+
+## Design Goals
+
+SearchEval Lab is designed around the following goals:
+
+1. Reproducibility  
+   Benchmark inputs, outputs, and configuration are saved in a structured way.
+
+2. Extensibility  
+   New search engines can be added through the search engine interface and factory.
+
+3. Observability  
+   The system records aggregate metrics, per-query metrics, weak queries, and latency data.
+
+4. Regression Safety  
+   Saved benchmark runs can be compared to detect quality or latency regressions.
+
+5. Backend Readiness  
+   The FastAPI layer exposes the benchmark system as a service.
+
+6. Portfolio Clarity  
+   The project demonstrates backend engineering, ML systems thinking, benchmarking, and evaluation infrastructure.
+
+---
+
+## Future Extensions
+
+Planned extensions:
+
+```txt
+Hybrid search engine
+Semantic search baseline
+Docker support
+Example reports committed to examples/reports
+Dashboard for saved benchmark runs
+More datasets
+CI benchmark workflow
+```
