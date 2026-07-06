@@ -363,6 +363,24 @@ Read one saved benchmark run:
 curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf?runs_dir=runs/api"
 ```
 
+Read saved aggregate metrics:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf/metrics?runs_dir=runs/api"
+```
+
+Read saved per-query metrics:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf/per-query?runs_dir=runs/api"
+```
+
+Read saved latency results:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf/latencies?runs_dir=runs/api"
+```
+
 Read a saved Markdown benchmark report:
 
 ```bash
