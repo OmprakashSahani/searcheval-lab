@@ -363,6 +363,12 @@ Read one saved benchmark run:
 curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf?runs_dir=runs/api"
 ```
 
+Read a saved Markdown benchmark report:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf/report?runs_dir=runs/api"
+```
+
 This API layer makes the benchmark system usable as a backend service, not only as a CLI tool.
 
 ## Code Quality
