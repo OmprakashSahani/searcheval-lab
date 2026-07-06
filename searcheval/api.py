@@ -128,6 +128,24 @@ def load_saved_run_summary(run_dir: Path) -> SavedRunResponse:
     )
 
 
+def load_saved_run_artifact(run_dir: Path, artifact_name: str) -> dict[str, Any]:
+    """Load a saved benchmark run JSON artifact."""
+    artifact_path = run_dir / artifact_name
+
+    if not artifact_path.exists():
+        raise FileNotFoundError(f"Benchmark artifact not found: {artifact_path}")
+
+    try:
+        payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid artifact JSON file: {artifact_path}") from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid artifact payload in: {artifact_path}")
+
+    return payload
+
+
 @api_app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     """Return API health status."""
@@ -327,6 +345,73 @@ def get_benchmark_report_endpoint(
         )
 
     return report_path.read_text(encoding="utf-8")
+
+
+def load_benchmark_artifact_endpoint(
+    run_id: str,
+    runs_dir: str,
+    artifact_name: str,
+) -> dict[str, Any]:
+    """Load one saved benchmark artifact for an API endpoint."""
+    run_dir = Path(runs_dir) / run_id
+
+    if not run_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Benchmark run not found: {run_id}",
+        )
+
+    if not run_dir.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Benchmark run path is not a directory: {run_dir}",
+        )
+
+    try:
+        return load_saved_run_artifact(run_dir, artifact_name)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@api_app.get("/benchmarks/runs/{run_id}/metrics")
+def get_benchmark_metrics_endpoint(
+    run_id: str,
+    runs_dir: str = "runs/api",
+) -> dict[str, Any]:
+    """Read saved aggregate metrics for one benchmark run."""
+    return load_benchmark_artifact_endpoint(
+        run_id=run_id,
+        runs_dir=runs_dir,
+        artifact_name="metrics.json",
+    )
+
+
+@api_app.get("/benchmarks/runs/{run_id}/per-query")
+def get_benchmark_per_query_metrics_endpoint(
+    run_id: str,
+    runs_dir: str = "runs/api",
+) -> dict[str, Any]:
+    """Read saved per-query metrics for one benchmark run."""
+    return load_benchmark_artifact_endpoint(
+        run_id=run_id,
+        runs_dir=runs_dir,
+        artifact_name="per_query_metrics.json",
+    )
+
+
+@api_app.get("/benchmarks/runs/{run_id}/latencies")
+def get_benchmark_latencies_endpoint(
+    run_id: str,
+    runs_dir: str = "runs/api",
+) -> dict[str, Any]:
+    """Read saved query latencies for one benchmark run."""
+    return load_benchmark_artifact_endpoint(
+        run_id=run_id,
+        runs_dir=runs_dir,
+        artifact_name="latencies.json",
+    )
 
 
 @api_app.post("/benchmarks/compare", response_model=CompareResponse)
