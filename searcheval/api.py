@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from searcheval import __version__
@@ -292,6 +293,40 @@ def get_benchmark_run_endpoint(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@api_app.get(
+    "/benchmarks/runs/{run_id}/report",
+    response_class=PlainTextResponse,
+)
+def get_benchmark_report_endpoint(
+    run_id: str,
+    runs_dir: str = "runs/api",
+) -> str:
+    """Read one saved benchmark Markdown report."""
+    run_dir = Path(runs_dir) / run_id
+
+    if not run_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Benchmark run not found: {run_id}",
+        )
+
+    if not run_dir.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Benchmark run path is not a directory: {run_dir}",
+        )
+
+    report_path = run_dir / "report.md"
+
+    if not report_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Benchmark report not found: {report_path}",
+        )
+
+    return report_path.read_text(encoding="utf-8")
 
 
 @api_app.post("/benchmarks/compare", response_model=CompareResponse)
