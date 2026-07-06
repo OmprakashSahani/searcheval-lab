@@ -1,4 +1,4 @@
-.PHONY: install test lint format-check validate run-tfidf run-bm25 compare api clean
+.PHONY: install test lint format-check validate run-tfidf run-bm25 compare api api-smoke clean
 
 install:
 	python -m pip install -e ".[dev]"
@@ -26,6 +26,9 @@ compare:
 
 api:
 	uvicorn searcheval.api:api_app --host 0.0.0.0 --port 8000 --reload
+
+api-smoke:
+	./examples/api_smoke_test.sh
 
 clean:
 	rm -rf runs/
