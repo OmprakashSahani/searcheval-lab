@@ -327,6 +327,18 @@ curl -X POST http://localhost:8000/benchmarks/run \
   }'
 ```
 
+List saved benchmark runs:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs?runs_dir=runs/api"
+```
+
+Read one saved benchmark run:
+
+```bash
+curl "http://localhost:8000/benchmarks/runs/run_20260101_120000_tfidf?runs_dir=runs/api"
+```
+
 This API layer makes the benchmark system usable as a backend service, not only as a CLI tool.
 
 ## Code Quality
