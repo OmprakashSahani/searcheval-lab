@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,16 @@ class BenchmarkResponse(BaseModel):
     report_path: str | None = None
 
 
+class SavedRunResponse(BaseModel):
+    """Saved benchmark run summary response."""
+
+    run_id: str
+    engine: str
+    k: int
+    run_dir: str
+    summary: dict[str, Any]
+
+
 class CompareRequest(BaseModel):
     """Request body for comparing two saved benchmark runs."""
 
@@ -88,6 +99,32 @@ class CompareResponse(BaseModel):
     passed: bool
     comparison: dict[str, Any]
     output_path: str | None = None
+
+
+def load_saved_run_summary(run_dir: Path) -> SavedRunResponse:
+    """Load a saved benchmark run summary."""
+    summary_path = run_dir / "summary.json"
+
+    if not summary_path.exists():
+        raise FileNotFoundError(f"Run summary not found: {summary_path}")
+
+    try:
+        payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid summary JSON file: {summary_path}") from exc
+
+    summary = payload.get("summary", {})
+
+    if not isinstance(summary, dict):
+        raise ValueError(f"Invalid summary payload in: {summary_path}")
+
+    return SavedRunResponse(
+        run_id=str(payload.get("run_id", run_dir.name)),
+        engine=str(payload.get("engine", "unknown")),
+        k=int(payload.get("k", 0)),
+        run_dir=str(run_dir),
+        summary=summary,
+    )
 
 
 @api_app.get("/health", response_model=HealthResponse)
@@ -192,6 +229,69 @@ def run_benchmark_endpoint(
         run_dir=str(run_dir) if run_dir else None,
         report_path=str(report_path) if report_path else None,
     )
+
+
+@api_app.get("/benchmarks/runs", response_model=list[SavedRunResponse])
+def list_benchmark_runs_endpoint(
+    runs_dir: str = "runs/api",
+) -> list[SavedRunResponse]:
+    """List saved benchmark runs."""
+    root = Path(runs_dir)
+
+    if not root.exists():
+        return []
+
+    if not root.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Runs path is not a directory: {root}",
+        )
+
+    saved_runs: list[SavedRunResponse] = []
+
+    for run_dir in sorted(root.iterdir()):
+        if not run_dir.is_dir():
+            continue
+
+        summary_path = run_dir / "summary.json"
+
+        if not summary_path.exists():
+            continue
+
+        try:
+            saved_runs.append(load_saved_run_summary(run_dir))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return saved_runs
+
+
+@api_app.get("/benchmarks/runs/{run_id}", response_model=SavedRunResponse)
+def get_benchmark_run_endpoint(
+    run_id: str,
+    runs_dir: str = "runs/api",
+) -> SavedRunResponse:
+    """Read one saved benchmark run summary."""
+    run_dir = Path(runs_dir) / run_id
+
+    if not run_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Benchmark run not found: {run_id}",
+        )
+
+    if not run_dir.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Benchmark run path is not a directory: {run_dir}",
+        )
+
+    try:
+        return load_saved_run_summary(run_dir)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @api_app.post("/benchmarks/compare", response_model=CompareResponse)
