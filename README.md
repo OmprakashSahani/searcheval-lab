@@ -243,6 +243,12 @@ Run BM25 benchmark:
 make run-bm25
 ```
 
+Run Hybrid BM25 + TF-IDF benchmark:
+
+```bash
+make run-hybrid
+```
+
 Run the TF-IDF vs BM25 comparison workflow:
 
 ```bash
@@ -265,6 +271,53 @@ Clean generated local artifacts:
 
 ```bash
 make clean
+```
+
+
+## Hybrid Search
+
+SearchEval Lab supports a Hybrid BM25 + TF-IDF search engine.
+
+The hybrid engine combines normalized BM25 and TF-IDF scores into a single ranking. This provides a stronger retrieval baseline than using either lexical method alone and makes the project more relevant to search evaluation and retrieval benchmarking workflows.
+
+Supported search engines:
+
+```txt
+tfidf
+bm25
+hybrid
+```
+
+Run a hybrid benchmark with the CLI:
+
+```bash
+python -m searcheval.cli run data/search_eval_small --engine hybrid --k 10
+```
+
+Run a hybrid benchmark with the Makefile:
+
+```bash
+make run-hybrid
+```
+
+Run the hybrid example script:
+
+```bash
+./examples/run_hybrid.sh
+```
+
+Run a hybrid benchmark through the API:
+
+```bash
+curl -X POST http://localhost:8000/benchmarks/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_path": "data/search_eval_small",
+    "engine": "hybrid",
+    "k": 10,
+    "save_artifacts": true,
+    "runs_dir": "runs/api"
+  }'
 ```
 
 
