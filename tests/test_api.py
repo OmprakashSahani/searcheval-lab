@@ -138,6 +138,31 @@ def test_api_run_benchmark_with_artifacts(tmp_path: Path) -> None:
     assert (run_dirs[0] / "report.md").exists()
 
 
+def test_api_run_hybrid_benchmark_without_saving_artifacts() -> None:
+    response = client.post(
+        "/benchmarks/run",
+        json={
+            "dataset_path": "data/search_eval_small",
+            "engine": "hybrid",
+            "k": 10,
+            "save_artifacts": False,
+        },
+    )
+
+    assert response.status_code == 200
+
+    payload = response.json()
+
+    assert payload["engine"] == "hybrid"
+    assert payload["k"] == 10
+    assert payload["run_dir"] is None
+    assert payload["report_path"] is None
+    assert "precision_at_10" in payload["summary"]
+    assert "recall_at_10" in payload["summary"]
+    assert "mrr_at_10" in payload["summary"]
+    assert "ndcg_at_10" in payload["summary"]
+
+
 def test_api_run_benchmark_rejects_unknown_engine() -> None:
     response = client.post(
         "/benchmarks/run",
