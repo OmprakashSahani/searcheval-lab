@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from searcheval.datasets.schema import Document, Query, SearchResult
+from searcheval.datasets.schema import Document, SearchResult
 from searcheval.search.base import SearchEngine, validate_top_k
 from searcheval.search.bm25 import BM25SearchEngine
 from searcheval.search.tfidf import TfidfSearchEngine
@@ -71,7 +71,7 @@ class HybridSearchEngine(SearchEngine):
         self.bm25_engine = BM25SearchEngine(documents)
         self.tfidf_engine = TfidfSearchEngine(documents)
 
-    def search(self, query: Query, top_k: int) -> list[SearchResult]:
+    def search(self, query: str, top_k: int) -> list[SearchResult]:
         """Search documents using combined BM25 and TF-IDF scores."""
         validate_top_k(top_k)
 
