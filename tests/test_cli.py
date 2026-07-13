@@ -95,6 +95,32 @@ def test_cli_run_bm25_benchmark(tmp_path) -> None:
     assert run_dirs[0].name.endswith("_bm25")
 
 
+def test_cli_run_hybrid_benchmark(tmp_path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "data/search_eval_small",
+            "--engine",
+            "hybrid",
+            "--k",
+            "10",
+            "--runs-dir",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Benchmark run completed." in result.output
+
+    run_dirs = list(tmp_path.iterdir())
+
+    assert len(run_dirs) == 1
+    assert run_dirs[0].name.endswith("_hybrid")
+    assert (run_dirs[0] / "summary.json").exists()
+    assert (run_dirs[0] / "report.md").exists()
+
+
 def test_cli_run_rejects_unknown_engine(tmp_path) -> None:
     result = runner.invoke(
         app,
