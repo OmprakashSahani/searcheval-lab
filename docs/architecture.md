@@ -23,21 +23,22 @@ Dataset Loader + Validator
       v
 Search Engine Factory
       |
-      +------------------+
-      |                  |
-      v                  v
-TF-IDF Search        BM25 Search
-      |                  |
-      +--------+---------+
-               |
-               v
+      +------------------+------------------+
+      |                  |                  |
+      v                  v                  v
+TF-IDF Search        BM25 Search       Hybrid Search
+                                      BM25 + TF-IDF
+      |                  |                  |
+      +------------------+------------------+
+                         |
+                         v
 Benchmark Runner
-               |
-               v
+                         |
+                         v
 Evaluation Engine
 Precision@K, Recall@K, MRR@K, NDCG@K
-               |
-               v
+                         |
+                         v
 Artifact Store
 summary.json
 metrics.json
@@ -45,13 +46,13 @@ per_query_metrics.json
 latencies.json
 report.md
 comparison.json
-               |
-               +-------------------+
-               |                   |
-               v                   v
+                         |
+                         +-------------------+
+                         |                   |
+                         v                   v
 Regression Compare        Markdown Reports
-               |
-               v
+                         |
+                         v
 CLI + FastAPI Access Layer
 ```
 
@@ -99,6 +100,7 @@ Files:
 searcheval/search/base.py
 searcheval/search/tfidf.py
 searcheval/search/bm25.py
+searcheval/search/hybrid.py
 searcheval/search/factory.py
 ```
 
@@ -107,6 +109,7 @@ Current engines:
 ```txt
 tfidf
 bm25
+hybrid
 ```
 
 Responsibilities:
@@ -115,12 +118,35 @@ Responsibilities:
 - Rank documents for each query.
 - Return top-k search results.
 - Allow CLI and API workflows to select search engines dynamically.
+- Combine multiple retrieval signals through the hybrid search engine.
 
 The search engine factory keeps the CLI and API independent from specific search engine implementations.
 
 ---
 
-### 3. Evaluation Layer
+### 3. Hybrid Search Layer
+
+The hybrid search engine combines BM25 and TF-IDF scores into a single ranking.
+
+File:
+
+```txt
+searcheval/search/hybrid.py
+```
+
+Responsibilities:
+
+- Run BM25 and TF-IDF over the same document collection.
+- Normalize individual retrieval scores.
+- Combine scores using configurable weights.
+- Produce a single ranked list of documents.
+- Provide a stronger lexical retrieval baseline than either BM25 or TF-IDF alone.
+
+This makes the system more relevant to real search evaluation workflows, where multiple ranking signals are often combined.
+
+---
+
+### 4. Evaluation Layer
 
 The evaluation layer computes search quality metrics.
 
@@ -150,7 +176,7 @@ Responsibilities:
 
 ---
 
-### 4. Benchmark Layer
+### 5. Benchmark Layer
 
 The benchmark layer connects datasets, search engines, evaluation, and latency tracking.
 
@@ -183,7 +209,7 @@ comparison.json
 
 ---
 
-### 5. Regression Detection Layer
+### 6. Regression Detection Layer
 
 The regression layer detects quality and latency regressions between benchmark runs.
 
@@ -220,7 +246,7 @@ Example threshold configuration:
 
 ---
 
-### 6. Reporting Layer
+### 7. Reporting Layer
 
 The reporting layer generates Markdown benchmark reports.
 
@@ -245,7 +271,7 @@ The report is designed to make benchmark results readable for engineers, reviewe
 
 ---
 
-### 7. CLI Layer
+### 8. CLI Layer
 
 The CLI provides a local developer workflow.
 
@@ -262,6 +288,7 @@ python -m searcheval.cli version
 python -m searcheval.cli validate data/search_eval_small
 python -m searcheval.cli run data/search_eval_small --engine tfidf --k 10
 python -m searcheval.cli run data/search_eval_small --engine bm25 --k 10
+python -m searcheval.cli run data/search_eval_small --engine hybrid --k 10
 python -m searcheval.cli compare <baseline_run> <current_run>
 ```
 
@@ -269,7 +296,7 @@ The CLI is useful for local benchmarking, regression checks, and reproducible ex
 
 ---
 
-### 8. FastAPI Backend Layer
+### 9. FastAPI Backend Layer
 
 The API layer exposes benchmark workflows over HTTP.
 
@@ -311,6 +338,7 @@ make test
 make validate
 make run-tfidf
 make run-bm25
+make run-hybrid
 make compare
 make api
 make api-smoke
@@ -352,7 +380,7 @@ SearchEval Lab is designed around the following goals:
    The FastAPI layer exposes the benchmark system as a service.
 
 6. Portfolio Clarity  
-   The project demonstrates backend engineering, ML systems thinking, benchmarking, and evaluation infrastructure.
+   The project demonstrates backend engineering, ML systems thinking, benchmarking, search evaluation, and evaluation infrastructure.
 
 ---
 
@@ -361,11 +389,11 @@ SearchEval Lab is designed around the following goals:
 Planned extensions:
 
 ```txt
-Hybrid search engine
 Semantic search baseline
 Docker support
 Example reports committed to examples/reports
 Dashboard for saved benchmark runs
 More datasets
 CI benchmark workflow
+Query-level comparison reports
 ```
