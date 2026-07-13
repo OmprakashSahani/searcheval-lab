@@ -1,4 +1,4 @@
-.PHONY: install test lint format-check validate run-tfidf run-bm25 compare api api-smoke clean
+.PHONY: install test lint format-check validate run-tfidf run-bm25 run-hybrid compare api api-smoke clean
 
 install:
 	python -m pip install -e ".[dev]"
@@ -20,6 +20,9 @@ run-tfidf:
 
 run-bm25:
 	python -m searcheval.cli run data/search_eval_small --engine bm25 --k 10
+
+run-hybrid:
+	python -m searcheval.cli run data/search_eval_small --engine hybrid --k 10
 
 compare:
 	./examples/compare_tfidf_bm25.sh
