@@ -59,7 +59,7 @@ def test_api_engines_endpoint() -> None:
 
     payload = response.json()
 
-    assert payload["engines"] == ["bm25", "tfidf"]
+    assert payload["engines"] == ["bm25", "hybrid", "tfidf"]
 
 
 def test_api_validate_dataset_endpoint() -> None:
